@@ -106,11 +106,14 @@ $result = $conn->query($sql);
     <div id="form" style="width: 1000px; height: 10px"></div>
       <form action="" method="post">
         Keyword: <select name="keyword_id">
-          <option value=0>All</option>
+          <option value=0 <?php if ($currentid == 0) echo " selected=\"selected\""; ?>>All</option>
           <?php
           while ($row = $result->fetch_assoc()) {
             $key_id = $row['key_id'];
-            echo "<option value=\"$key_id\">".$row["keyword"]."</option>";
+            if ($key_id == $currentid)
+              echo "<option value=\"$key_id\" selected=\"selected\">".$row["keyword"]."</option>";
+            else
+              echo "<option value=\"$key_id\">".$row["keyword"]."</option>";
           }
           ?>
         </select>
