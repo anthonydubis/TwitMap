@@ -24,38 +24,56 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       }
     };
 
+    var map = null;
+    var infoWindow = null;
     function load() {
-      var map = new google.maps.Map(document.getElementById("map"), {
+      map = new google.maps.Map(document.getElementById("map"), {
         center: new google.maps.LatLng(47.6145, -122.3418),
         zoom: 2,
         mapTypeId: 'roadmap'
       });
-      var infoWindow = new google.maps.InfoWindow;
+      infoWindow = new google.maps.InfoWindow;
 
       // Change this depending on the name of your PHP file
+      populateMap();
+      setInterval(populateMap, 5000);
+
+      // setInterval(function()
+      // {
+      //   alert("hi");
+      // }, 5000);
+    }
+
+    function populateMap() {
       var tweet_xml_url = "gen_tweet_xml.php?keyid=";
       var js_key_id = <?php Print($currentid); ?>;
       var urlWithGet = tweet_xml_url.concat(js_key_id);
+
       downloadUrl(urlWithGet, function(data) {
         var xml = data.responseXML;
         var markers = xml.documentElement.getElementsByTagName("marker");
-        for (var i = 0; i < markers.length; i++) {
-          var t_id = markers[i].getAttribute("tweetID");
-          var k_id = markers[i].getAttribute("keywordID");
-          var point = new google.maps.LatLng(
-              parseFloat(markers[i].getAttribute("lat")),
-              parseFloat(markers[i].getAttribute("lng")));
-          var html = "<b> TweetID: " + t_id + "</b><br/>";
-          var icon = customIcons["Tweet"] || {};
-
-          var marker = new google.maps.Marker({
-            map: map,
-            position: point,
-            icon: icon.icon
-          });
-          bindInfoWindow(marker, map, infoWindow, html);
-        }
+        plotMarkers(markers);
       });
+    }
+
+    function plotMarkers(markers) {
+      for (var i = 0; i < markers.length; i++) {
+        var info = markers[i];
+        var pos = new google.maps.LatLng(
+            parseFloat(info.getAttribute("lat")), 
+            parseFloat(info.getAttribute("lng")));
+        var t_id = info.getAttribute("tweetID");
+        var k_id = info.getAttribute("keywordID");
+        var html = "<b> TweetID: " + t_id + "</b><br/>";
+        var icon = customIcons["tweet"] || {};
+
+        var marker = new google.maps.Marker({
+          map: map,
+          position: pos,
+          icon: icon.icon
+        });
+        bindInfoWindow(marker, map, infoWindow, html);
+      }
     }
 
     function bindInfoWindow(marker, map, infoWindow, html) {
@@ -99,7 +117,6 @@ if ($conn->connect_error) {
 // Get the tweets
 $sql = "SELECT * FROM Keywords ORDER BY keyword ASC";
 $result = $conn->query($sql);
-
 ?>
 
   <body onload="load()">
@@ -119,6 +136,7 @@ $result = $conn->query($sql);
         </select>
         <input type="submit" value="Map It">
         <br><br>
+
     <div id="map" style="width: 1000px; height: 600px"></div>
   </body>
 
