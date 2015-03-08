@@ -4,3 +4,6 @@ db_info.php
 *.zip
 *~
 testmap.html
+sse.php
+testsse.php
+tweetInserts.php

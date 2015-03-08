@@ -1,31 +1,27 @@
 <?php 
 require("twitmap_includes.php"); 
+
 $currentid = 0;
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   $currentid = $_POST['keyword_id'];
-}
+} 
 ?>
 
 <!DOCTYPE html >
   <head>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
-    <title>PHP/MySQL & Google Maps Example</title>
+    <title>TwitMap</title>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js"></script>
     <script type="text/javascript">
-    //<![CDATA[
 
     var customIcons = {
-      tweet: {
-        icon: 'http://labs.google.com/ridefinder/images/mm_20_blue.png'
-      },
-      bar: {
-        icon: 'http://labs.google.com/ridefinder/images/mm_20_red.png'
-      }
+      tweet: { icon: 'http://labs.google.com/ridefinder/images/mm_20_blue.png' }
     };
 
     var map = null;
     var infoWindow = null;
+    var current_markers = [];
     function load() {
       map = new google.maps.Map(document.getElementById("map"), {
         center: new google.maps.LatLng(47.6145, -122.3418),
@@ -34,26 +30,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       });
       infoWindow = new google.maps.InfoWindow;
 
-      // Change this depending on the name of your PHP file
       populateMap();
       setInterval(populateMap, 5000);
-
-      // setInterval(function()
-      // {
-      //   alert("hi");
-      // }, 5000);
     }
 
     function populateMap() {
-      var tweet_xml_url = "gen_tweet_xml.php?keyid=";
-      var js_key_id = <?php Print($currentid); ?>;
-      var urlWithGet = tweet_xml_url.concat(js_key_id);
+      var tweet_xml_url = "gen_tweet_xml.php?keyid=" + <?php Print($currentid); ?>;
 
-      downloadUrl(urlWithGet, function(data) {
+      downloadUrl(tweet_xml_url, function(data) {
         var xml = data.responseXML;
         var markers = xml.documentElement.getElementsByTagName("marker");
+        console.log("Number of returned markers: " + markers.length);
+        setAllMap(null);
         plotMarkers(markers);
       });
+    }
+
+    // Sets the map of all markers - removes markers if map is null
+    function setAllMap(map) {
+      for (var i = 0; i < current_markers.length; i++) {
+        current_markers[i].setMap(map);
+      }
+      current_markers = [];
     }
 
     function plotMarkers(markers) {
@@ -72,15 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
           position: pos,
           icon: icon.icon
         });
-        bindInfoWindow(marker, map, infoWindow, html);
+        current_markers.push(marker);
       }
-    }
-
-    function bindInfoWindow(marker, map, infoWindow, html) {
-      google.maps.event.addListener(marker, 'click', function() {
-        infoWindow.setContent(html);
-        infoWindow.open(map, marker);
-      });
     }
 
     function downloadUrl(url, callback) {
@@ -101,7 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     function doNothing() {}
 
-    //]]>
 
   </script>
 
