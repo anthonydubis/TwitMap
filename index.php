@@ -12,23 +12,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
     <title>TwitMap</title>
-    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js"></script>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
     <script type="text/javascript">
 
-    var customIcons = {
-      tweet: { icon: 'http://labs.google.com/ridefinder/images/mm_20_blue.png' }
-    };
-
-    var map = null;
-    var infoWindow = null;
-    var current_markers = [];
+    var map, heatmap;
+    var current_points = [];
+    var heatmaps = [];
     function load() {
       map = new google.maps.Map(document.getElementById("map"), {
         center: new google.maps.LatLng(47.6145, -122.3418),
         zoom: 2,
         mapTypeId: 'roadmap'
       });
-      infoWindow = new google.maps.InfoWindow;
 
       populateMap();
       setInterval(populateMap, 5000);
@@ -38,39 +33,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       var tweet_xml_url = "gen_tweet_xml.php?keyid=" + <?php Print($currentid); ?>;
 
       downloadUrl(tweet_xml_url, function(data) {
+        if (heatmap)
+          heatmaps.push(heatmap);
+        if (heatmaps.length > 5) {
+          console.log("Deleting a heatmap");
+          var oldHeatmap = heatmaps.shift();
+          oldHeatmap.setMap(null);
+        }
+
         var xml = data.responseXML;
-        var markers = xml.documentElement.getElementsByTagName("marker");
-        console.log("Number of returned markers: " + markers.length);
-        setAllMap(null);
-        plotMarkers(markers);
+        var pointsData = xml.documentElement.getElementsByTagName("marker");
+        console.log("Number of returned points: " + pointsData.length);
+        buildData(pointsData);
+        
+        // Setup the heatmap
+        var pointArray = new google.maps.MVCArray(current_points);
+        heatmap = new google.maps.visualization.HeatmapLayer({
+          data: pointArray
+        });
+        current_points = [];
+
+        heatmap.setMap(map);
       });
     }
 
-    // Sets the map of all markers - removes markers if map is null
-    function setAllMap(map) {
-      for (var i = 0; i < current_markers.length; i++) {
-        current_markers[i].setMap(map);
-      }
-      current_markers = [];
-    }
-
-    function plotMarkers(markers) {
-      for (var i = 0; i < markers.length; i++) {
-        var info = markers[i];
+    function buildData(pointsData) {
+      for (var i = 0; i < pointsData.length; i++) {
         var pos = new google.maps.LatLng(
-            parseFloat(info.getAttribute("lat")), 
-            parseFloat(info.getAttribute("lng")));
-        var t_id = info.getAttribute("tweetID");
-        var k_id = info.getAttribute("keywordID");
-        var html = "<b> TweetID: " + t_id + "</b><br/>";
-        var icon = customIcons["tweet"] || {};
-
-        var marker = new google.maps.Marker({
-          map: map,
-          position: pos,
-          icon: icon.icon
-        });
-        current_markers.push(marker);
+            parseFloat(pointsData[i].getAttribute("lat")), 
+            parseFloat(pointsData[i].getAttribute("lng")));
+        current_points.push(pos);
       }
     }
 

@@ -5,7 +5,8 @@ require("twitmap_includes.php");
 session_start();
 if (!isset($_SESSION["lastTweetID"])) {
     $_SESSION["lastTweetID"] = 0;
-}
+} 
+
 
 if (!isset($_SESSION["lastKeyID"])) {
 	$_SESSION["lastKeyID"] = $_GET["keyid"];
@@ -30,9 +31,9 @@ if ($conn->connect_error) {
 
 // Get the tweets
 $sql = "SELECT * FROM Tweets WHERE id > ".$_SESSION["lastTweetID"];
-if ($_SESSION["lastKeyID"] != 0) {
+if ($_SESSION["lastKeyID"] != 0) 
 	$sql .= " AND key_id = ".$_SESSION["lastKeyID"];
-}
+$sql .= " ORDER BY id DESC LIMIT 600";
 $result = $conn->query($sql);
 
 header("Content-type: text/xml");
