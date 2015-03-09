@@ -110,7 +110,7 @@ $result = $conn->query($sql);
 ?>
 
   <body onload="load()">
-    <div id="keyword_selector"></div>
+    <div id="keyword_selector">
       <p>
         <form action="" method="post">
           Keyword: <select name="keyword_id">
@@ -126,10 +126,10 @@ $result = $conn->query($sql);
             ?>
           </select>
           <input type="submit" value="Map It"> 
-          <span id="tweet_count">Displaying <b>0 Tweets</b></span>
-          <br><br>
         </form>
       </p>
+      <p id="tweet_count">Displaying <b>0 Tweets</b></p>
+    </div>
 
     <div id="map"></div>
   </body>
