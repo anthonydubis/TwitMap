@@ -16,9 +16,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
     <script type="text/javascript">
 
-    var map, heatmap;
+    var customIcons = {
+      tweet: { icon: 'http://labs.google.com/ridefinder/images/mm_20_blue.png' }
+    };
+
+    var map, heatmap, intervalID;
+    var infoWindow = new google.maps.InfoWindow;
+    var realTime = true;
+    var tweet_markers =[];
     var tweet_locations = [];
     var tweets_returned = [];
+
     function load() {
       map = new google.maps.Map(document.getElementById("map"), {
         center: new google.maps.LatLng(39.8282, -98.58795),
@@ -27,51 +35,120 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       });
 
       populateMap();
-      setInterval(populateMap, 5000);
+      intervalID = setInterval(populateMap, 5000);
     }
 
     function populateMap() {
-      var tweet_xml_url = "gen_tweet_xml.php?keyid=" + <?php Print($currentid); ?>;
+      console.log("Called populating map");
+
+      if (!realTime && tweet_markers.length > 0)
+        return;
+
+      console.log("Actually populating map");
+
+      var tweet_xml_url = "gen_tweet_xml.php?realtime=" + realTime;
+      tweet_xml_url = tweet_xml_url + "&keyid=" + <?php Print($currentid); ?>;
+      console.log(tweet_xml_url);
 
       downloadUrl(tweet_xml_url, function(data) {
-        if (tweets_returned.length > 10) {
+        if (realTime && tweets_returned.length > 10) {
           var num_to_remove = tweets_returned.shift();
           tweet_locations = tweet_locations.slice(num_to_remove);
         }
 
         var xml = data.responseXML;
         var pointsData = xml.documentElement.getElementsByTagName("marker");
-        tweets_returned.push(pointsData.length);
-        buildData(pointsData);
-        
-        // Setup the heatmap
-        var pointArray = new google.maps.MVCArray(tweet_locations);
-        var newHeatmap = new google.maps.visualization.HeatmapLayer({
-          data: pointArray
-        });
+        if (realTime) {
+          tweets_returned.push(pointsData.length);
+          buildTweetLocations(pointsData);
 
-        newHeatmap.setMap(map);
-        if (heatmap)
-          heatmap.setMap(null);
-        heatmap = newHeatmap;
+          // Setup the heatmap
+          var pointArray = new google.maps.MVCArray(tweet_locations);
+          var newHeatmap = new google.maps.visualization.HeatmapLayer({
+            data: pointArray
+          });
+
+          newHeatmap.setMap(map);
+          if (heatmap)
+            heatmap.setMap(null);
+          heatmap = newHeatmap;
+
+        } else {
+          plotMarkers(pointsData);
+        }
+        
         document.getElementById("tweet_count").innerHTML = "Displaying <b>" + getTweetCount() + " Tweets</b>";
       });
     }
 
+    function removeMarkersFromMap() {
+      for (var i = 0; i < tweet_markers.length; i++)
+        tweet_markers[i].setMap(null);
+    }
+
+    function plotMarkers(markers) {
+      for (var i = 0; i < markers.length; i++) {
+        var info = markers[i];
+        var pos = new google.maps.LatLng(
+            parseFloat(info.getAttribute("lat")), 
+            parseFloat(info.getAttribute("lng")));
+        var t_id = info.getAttribute("tweetID");
+        var k_id = info.getAttribute("keywordID");
+        var html = "<b> TweetID: " + t_id + "</b><br/>";
+        var icon = customIcons["tweet"] || {};
+        var marker = new google.maps.Marker({
+          map: map,
+          position: pos,
+        });
+        bindInfoWindow(marker, map, infoWindow, html);
+        tweet_markers.push(marker);
+      }
+    }
+
+    function bindInfoWindow(marker, map, infoWindow, html) {
+       google.maps.event.addListener(marker, 'click', function() {
+         infoWindow.setContent(html);
+         infoWindow.open(map, marker);
+       });
+     }
+
     function getTweetCount() {
       var count = 0;
-      for (var i = 0; i < tweets_returned.length; i++)
-        count += tweets_returned[i];
+      if (realTime) {
+        for (var i = 0; i < tweets_returned.length; i++)
+          count += tweets_returned[i];
+      } else {
+        count = tweet_markers.length;
+      }
       return count;
     }
 
-    function buildData(pointsData) {
+    function buildTweetLocations(pointsData) {
       for (var i = 0; i < pointsData.length; i++) {
         var pos = new google.maps.LatLng(
             parseFloat(pointsData[i].getAttribute("lat")), 
             parseFloat(pointsData[i].getAttribute("lng")));
         tweet_locations.push(pos);
       }
+    }
+
+    function toggleRealTime() {
+      clearInterval(intervalID);
+      realTime = !realTime;
+
+      if (realTime) {
+        console.log("Switch to showing heatmap");
+        removeMarkersFromMap();
+        tweet_markers = [];
+        intervalID = setInterval(populateMap, 5000);
+      } else {
+        console.log("Switched to showing all data");
+        if (heatmap) {
+          heatmap.setMap(null);
+          heatmap = null;
+        }
+      }
+      populateMap();
     }
 
     function downloadUrl(url, callback) {
@@ -127,6 +204,7 @@ $result = $conn->query($sql);
         <input type="submit" value="Map It">
         <span id="tweet_count">Displaying <b>0 Tweets</b></span>
       </form>
+      <button id="toggle" onclick="toggleRealTime()">Toggle Real-Time</button></span>
     </div>
 
     <div id="map"></div>

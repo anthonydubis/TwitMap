@@ -2,16 +2,17 @@
 require("twitmap_includes.php");
 
 // Set the last tweet ID you returned and the current keyID
+$realTime = $_GET["realtime"];
+$keyID = $_GET["keyid"];
+
 session_start();
 if (!isset($_SESSION["lastTweetID"])) {
     $_SESSION["lastTweetID"] = 0;
 } 
 
-
 if (!isset($_SESSION["lastKeyID"])) {
-	$_SESSION["lastKeyID"] = $_GET["keyid"];
+	$_SESSION["lastKeyID"] = $keyID;
 } else {
-	$keyID = $_GET["keyid"];
 	if ($keyID != $_SESSION["lastKeyID"]) {
 		$_SESSION["lastKeyID"] = $keyID;
 		$_SESSION["lastTweetID"] = 0;
@@ -30,10 +31,24 @@ if ($conn->connect_error) {
 } 
 
 // Get the tweets
-$sql = "SELECT * FROM Tweets WHERE id > ".$_SESSION["lastTweetID"];
-if ($_SESSION["lastKeyID"] != 0) 
-	$sql .= " AND key_id = ".$_SESSION["lastKeyID"];
-$sql .= " ORDER BY id DESC LIMIT 600";
+$sql = "SELECT * FROM Tweets";
+
+// Fetch from last tweet ID if working in real-time
+if ($realTime == "true") 
+	$sql .= " WHERE id > ".$_SESSION["lastTweetID"];
+
+// Filter by a key id if a keyword is selected
+if ($_SESSION["lastKeyID"] != "0") {
+	if ($realTime == "true")
+		$sql .= " AND key_id = ".$_SESSION["lastKeyID"];
+	else
+		$sql .= " WHERE key_id = ".$_SESSION["lastKeyID"];
+}
+
+// Limit the returned results if real-time and it's the first fetch
+if (($realTime == "true") && ($_SESSION["lastTweetID"] == "0"))
+	$sql .= " ORDER BY id DESC LIMIT 300";
+
 $result = $conn->query($sql);
 
 header("Content-type: text/xml");
@@ -49,7 +64,8 @@ while ($row = $result->fetch_assoc()) {
   	$newnode->setAttribute('lat', $row['lat']);
   	$newnode->setAttribute('lng', $row['lng']);
 
-  	$_SESSION["lastTweetID"] = max($row['id'], $_SESSION["lastTweetID"]);
+  	if ($realTime == "true")
+  		$_SESSION["lastTweetID"] = max($row['id'], $_SESSION["lastTweetID"]);
 }
 
 echo $dom->saveXML();
