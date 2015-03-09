@@ -110,25 +110,23 @@ $result = $conn->query($sql);
 ?>
 
   <body onload="load()">
-    <div id="keyword_selector">
-      <p>
-        <form action="" method="post">
-          Keyword: <select name="keyword_id">
-            <option value=0 <?php if ($currentid == 0) echo " selected=\"selected\""; ?>>All</option>
-            <?php
-            while ($row = $result->fetch_assoc()) {
-              $key_id = $row['key_id'];
-              if ($key_id == $currentid)
-                echo "<option value=\"$key_id\" selected=\"selected\">".$row["keyword"]."</option>";
-              else
-                echo "<option value=\"$key_id\">".$row["keyword"]."</option>";
-            }
-            ?>
-          </select>
-          <input type="submit" value="Map It"> 
-        </form>
-      </p>
-      <p id="tweet_count">Displaying <b>0 Tweets</b></p>
+    <div id="panel">
+      <form action="" method="post">
+        Keyword: <select name="keyword_id">
+          <option value=0 <?php if ($currentid == 0) echo " selected=\"selected\""; ?>>All</option>
+          <?php
+          while ($row = $result->fetch_assoc()) {
+            $key_id = $row['key_id'];
+            if ($key_id == $currentid)
+              echo "<option value=\"$key_id\" selected=\"selected\">".$row["keyword"]."</option>";
+            else
+              echo "<option value=\"$key_id\">".$row["keyword"]."</option>";
+          }
+          ?>
+        </select>
+        <input type="submit" value="Map It">
+        <span id="tweet_count">Displaying <b>0 Tweets</b></span>
+      </form>
     </div>
 
     <div id="map"></div>
