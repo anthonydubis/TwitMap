@@ -11,16 +11,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <head>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="style.css">
     <title>TwitMap</title>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
     <script type="text/javascript">
 
     var map, heatmap;
-    var current_points = [];
-    var heatmaps = [];
+    var tweet_locations = [];
+    var tweets_returned = [];
     function load() {
       map = new google.maps.Map(document.getElementById("map"), {
-        center: new google.maps.LatLng(47.6145, -122.3418),
+        center: new google.maps.LatLng(39.8282, -98.58795),
         zoom: 2,
         mapTypeId: 'roadmap'
       });
@@ -33,28 +34,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       var tweet_xml_url = "gen_tweet_xml.php?keyid=" + <?php Print($currentid); ?>;
 
       downloadUrl(tweet_xml_url, function(data) {
-        if (heatmap)
-          heatmaps.push(heatmap);
-        if (heatmaps.length > 5) {
-          console.log("Deleting a heatmap");
-          var oldHeatmap = heatmaps.shift();
-          oldHeatmap.setMap(null);
+        if (tweets_returned.length > 10) {
+          var num_to_remove = tweets_returned.shift();
+          tweet_locations = tweet_locations.slice(num_to_remove);
         }
 
         var xml = data.responseXML;
         var pointsData = xml.documentElement.getElementsByTagName("marker");
-        console.log("Number of returned points: " + pointsData.length);
+        tweets_returned.push(pointsData.length);
         buildData(pointsData);
         
         // Setup the heatmap
-        var pointArray = new google.maps.MVCArray(current_points);
-        heatmap = new google.maps.visualization.HeatmapLayer({
+        var pointArray = new google.maps.MVCArray(tweet_locations);
+        var newHeatmap = new google.maps.visualization.HeatmapLayer({
           data: pointArray
         });
-        current_points = [];
 
-        heatmap.setMap(map);
+        newHeatmap.setMap(map);
+        if (heatmap)
+          heatmap.setMap(null);
+        heatmap = newHeatmap;
+        document.getElementById("tweet_count").innerHTML = "Displaying <b>" + getTweetCount() + " Tweets</b>";
       });
+    }
+
+    function getTweetCount() {
+      var count = 0;
+      for (var i = 0; i < tweets_returned.length; i++)
+        count += tweets_returned[i];
+      return count;
     }
 
     function buildData(pointsData) {
@@ -62,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         var pos = new google.maps.LatLng(
             parseFloat(pointsData[i].getAttribute("lat")), 
             parseFloat(pointsData[i].getAttribute("lng")));
-        current_points.push(pos);
+        tweet_locations.push(pos);
       }
     }
 
@@ -102,24 +110,28 @@ $result = $conn->query($sql);
 ?>
 
   <body onload="load()">
-    <div id="form" style="width: 1000px; height: 10px"></div>
-      <form action="" method="post">
-        Keyword: <select name="keyword_id">
-          <option value=0 <?php if ($currentid == 0) echo " selected=\"selected\""; ?>>All</option>
-          <?php
-          while ($row = $result->fetch_assoc()) {
-            $key_id = $row['key_id'];
-            if ($key_id == $currentid)
-              echo "<option value=\"$key_id\" selected=\"selected\">".$row["keyword"]."</option>";
-            else
-              echo "<option value=\"$key_id\">".$row["keyword"]."</option>";
-          }
-          ?>
-        </select>
-        <input type="submit" value="Map It">
-        <br><br>
+    <div id="keyword_selector"></div>
+      <p>
+        <form action="" method="post">
+          Keyword: <select name="keyword_id">
+            <option value=0 <?php if ($currentid == 0) echo " selected=\"selected\""; ?>>All</option>
+            <?php
+            while ($row = $result->fetch_assoc()) {
+              $key_id = $row['key_id'];
+              if ($key_id == $currentid)
+                echo "<option value=\"$key_id\" selected=\"selected\">".$row["keyword"]."</option>";
+              else
+                echo "<option value=\"$key_id\">".$row["keyword"]."</option>";
+            }
+            ?>
+          </select>
+          <input type="submit" value="Map It"> 
+          <span id="tweet_count">Displaying <b>0 Tweets</b></span>
+          <br><br>
+        </form>
+      </p>
 
-    <div id="map" style="width: 1000px; height: 600px"></div>
+    <div id="map"></div>
   </body>
 
 <?php
