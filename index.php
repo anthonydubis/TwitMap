@@ -27,6 +27,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     var tweet_locations = [];
     var tweets_returned = [];
 
+// Setup the server-side event source for receiving sentiment updates
+    var source = new EventSource("sentiment_sse.php");
+  
+    source.addEventListener("sentiment", function(e) {
+      console.log(e.data);
+    }, false);
+
+    source.addEventListener("open", function(e) {
+      console.log("Connection was opened.");
+    }, false);
+
+    source.addEventListener("error", function(e) {
+      console.log("Error - the connection was lost.");
+    }, false);
+
     function load() {
       map = new google.maps.Map(document.getElementById("map"), {
         center: new google.maps.LatLng(39.8282, -98.58795),
