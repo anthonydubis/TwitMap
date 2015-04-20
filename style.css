@@ -10,7 +10,7 @@ html, body, #map {
 	position: absolute;
     top: 5px;
     left: 50%;
-    margin-left: -350px;
+    margin-left: -400px;
     z-index: 5;
     background-color: #fff;
     padding: 5px;

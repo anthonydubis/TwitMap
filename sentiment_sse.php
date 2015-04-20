@@ -19,17 +19,18 @@ while (1) {
   echo "event: sentiment\n";
 
   // Get the tweets
-  $sql = "SELECT AVG(x.sentiment) AS avg FROM (SELECT sentiment FROM Tweets t WHERE t.sentiment != 0.0 ORDER BY t.id DESC LIMIT 100) AS x";
+  $sql = "SELECT sentiment FROM Sentiment";
+  // $sql = "SELECT AVG(x.sentiment) AS avg FROM (SELECT sentiment FROM Tweets t WHERE t.sentiment != 0.0 ORDER BY t.id DESC LIMIT 100) AS x";
   $result = $conn->query($sql);
   $row = $result->fetch_assoc();
   if ($row) {
-  	if (isset($row['avg'])) {
-  		if ($row['avg'] >= 0.0) {
-  			echo 'data: Positive: ' .$row['avg']. "\n\n";
+  	if (isset($row['sentiment'])) {
+  		if ($row['sentiment'] >= 0.0) {
+  			echo 'data: Positive: ' .$row['sentiment']. "\n\n";
   		} else {
-  			echo 'data: Negative: ' .$row['avg']. "\n\n";
+  			echo 'data: Negative: ' .$row['sentiment']. "\n\n";
   		}
-		echo 'data: ' .$row['avg']. "\n\n";
+		// echo 'data: ' .$row['sentiment']. "\n\n";
 	} else {
 		echo "data: Gathering Sentiment...\n\n";
 	}
