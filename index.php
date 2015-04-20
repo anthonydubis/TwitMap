@@ -31,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     var source = new EventSource("sentiment_sse.php");
   
     source.addEventListener("sentiment", function(e) {
+      document.getElementById("sentiment").innerHTML = e.data;
       console.log(e.data);
     }, false);
 
@@ -54,16 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     function populateMap() {
-      console.log("Called populating map");
-
       if (!realTime && tweet_markers.length > 0)
         return;
 
-      console.log("Actually populating map");
-
       var tweet_xml_url = "gen_tweet_xml.php?realtime=" + realTime;
       tweet_xml_url = tweet_xml_url + "&keyid=" + <?php Print($currentid); ?>;
-      console.log(tweet_xml_url);
 
       downloadUrl(tweet_xml_url, function(data) {
         if (realTime && tweets_returned.length > 10) {
@@ -152,12 +148,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       realTime = !realTime;
 
       if (realTime) {
-        console.log("Switch to showing heatmap");
         removeMarkersFromMap();
         tweet_markers = [];
         intervalID = setInterval(populateMap, 5000);
       } else {
-        console.log("Switched to showing all data");
         if (heatmap) {
           heatmap.setMap(null);
           heatmap = null;
@@ -218,6 +212,8 @@ $result = $conn->query($sql);
         </select>
         <input type="submit" value="Map It">
         <span id="tweet_count">Displaying <b>0 Tweets</b></span>
+        <span> - </span>
+        <span id="sentiment">Gathering Sentiment</span>
       </form>
       <button id="toggle" onclick="toggleRealTime()">Toggle Real-Time</button></span>
     </div>
